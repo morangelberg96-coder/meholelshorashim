@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לומדת שורשים - מורן קמיל גלברג</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f0fdf4;
+            padding-top: 5rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .root-letter { color: #2563eb; font-weight: 700; }
+        .affix-letter { color: #f97316; }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        @keyframes pop {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: pop 0.3s ease-out forwards; }
+        
+        .block-none { background-color: #f3f4f6; color: #374151; border-color: #d1d5db; }
+        .block-root { background-color: #dbeafe; color: #1d4ed8; border-color: #3b82f6; font-weight: 700;}
+        .block-affix { background-color: #ffedd5; color: #c2410c; border-color: #f97316; }
+        .tool-selected { transform: scale(1.1); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); border-width: 4px; }
+    </style>
+</head>
+<body class="text-gray-800 flex flex-col items-center p-4 md:p-8 relative">
+
+    <!-- Nikud Header -->
+    <div class="fixed top-0 left-0 right-0 bg-white shadow-md p-3 flex justify-center items-center gap-4 z-40">
+        <label class="font-bold text-gray-700 text-lg">בקרת ניקוד:</label>
+        <select id="nikudSelector" onchange="changeNikud(this.value)" class="bg-blue-50 border-2 border-blue-200 rounded-full px-6 py-2 text-lg focus:outline-none focus:border-blue-400 font-medium transition-colors cursor-pointer">
+            <option value="full">עם ניקוד מלא</option>
+            <option value="partial">ניקוד חלקי</option>
+            <option value="none">ללא ניקוד</option>
+        </select>
+    </div>
+
+    <!-- App Container -->
+    <div id="app" class="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden p-6 md:p-10 animate-pop flex-grow z-10">
+        <!-- Content will be injected here -->
+    </div>
+
+    <!-- Footer Credit -->
+    <footer class="mt-8 text-center text-gray-500 font-medium pb-4 z-10">
+        יצרה באמצעות הבינה המלאכותית- מורן קמיל גלברג, הוראה מותאמת
+    </footer>
+
+    <!-- Custom Root Modal -->
+    <div id="customRootModal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-pop">
+            <div class="bg-blue-600 text-white p-6 relative">
+                <button onclick="closeCustomModal()" class="absolute top-4 left-4 text-white hover:text-blue-200 text-3xl font-bold">&times;</button>
+                <h2 class="text-3xl font-bold text-center">➕ הוספת שורש חדש</h2>
+                <p class="text-center text-blue-100 mt-2">המערכת תזהה את המילים ותכין תרגולים אוטומטית!</p>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow bg-gray-50 space-y-6">
+                <div>
+                    <label class="block font-bold text-lg mb-2">אותיות השורש (למשל: ר.ק.ד או ח.ש.ב)</label>
+                    <input type="text" id="cRootName" placeholder="הקלידו את השורש..." class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-xl focus:border-blue-500 outline-none">
+                </div>
+                
+                <div>
+                    <label class="block font-bold text-lg mb-2">מילות המשפחה (הפרידו בפסיק)</label>
+                    <textarea id="cWords" rows="3" placeholder="רקד, רוקד, רקדן, ריקוד, הרקיד..." class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg focus:border-blue-500 outline-none"></textarea>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <label class="block font-bold text-lg mb-2 text-blue-800">משפטים להשלמה (אופציונלי)</label>
+                    <p class="text-sm text-blue-600 mb-2">הקלידו משפט מנוקד עם קו תחתון (_), הוסיפו את הסימן | ואז את התשובה.</p>
+                    <textarea id="cSentences" rows="3" placeholder="הַיֶּלֶד ___ בַּמְּסִבָּה | רָקַד&#10;הַ___ הוֹפִיעַ עַל הַבָּמָה | רַקְדָן" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg focus:border-blue-500 outline-none"></textarea>
+                </div>
+
+                <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <label class="block font-bold text-lg mb-2 text-purple-800">פעלים לתרגול זמנים וגופים (אופציונלי)</label>
+                    <p class="text-sm text-purple-600 mb-2">פורמט: פועל | זמן | גוף</p>
+                    <textarea id="cVerbs" rows="3" placeholder="רָקַדְתִּי | עבר | אני&#10;יִרְקְדוּ | עתיד | הם" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg focus:border-blue-500 outline-none"></textarea>
+                </div>
+            </div>
+
+            <div class="p-6 bg-white border-t flex justify-between gap-4">
+                <button onclick="saveCustomRoot()" class="flex-1 bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 rounded-xl transition-colors shadow-md">שמור שורש חדש</button>
+                <button onclick="closeCustomModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xl font-bold py-4 rounded-xl transition-colors">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Global State ---
+        let currentScreen = 'home';
+        let activeRootId = null;
+        
+        let currentTaskQuestions = [];
+        let currentTaskIndex = 0;
+        
+        let nikudMode = 'full';
+        
+        let selectedMarkingTool = 'root';
+        let currentWordBlocks = [];
+        let userMarkingPattern = [];
+        let grammarPhase = 1;
+
+        let selectedStoryLength = 'medium';
+
+        const customThemeColors = ["bg-rose-100", "bg-lime-100", "bg-sky-100", "bg-amber-100", "bg-pink-100"];
+        let customColorIndex = 0;
+
+        function createVerbs(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10) {
+            return [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10].filter(Boolean);
+        }
+
+        // --- 2. Database of Roots ---
+        // הוספנו ניקוד מלא לכל המשפטים והסיפורים כדי שבקרת הניקוד תעבוד עליהם
+        const database = [
+            {
+                id: "ktv", rootName: "כ - ת - ב", title: "משפחת כ.ת.ב", themeColor: "bg-blue-100", buttonColor: "bg-blue-500 hover:bg-blue-600",
+                words: [
+                    { html: '<span class="root-letter">כָּתַב</span>', meaning: "בעבר - הוא עשה את הפעולה" },
+                    { html: '<span class="affix-letter">מִ</span><span class="root-letter">כְתָּב</span>', meaning: "מה ששולחים בדואר למישהו" },
+                    { html: '<span class="affix-letter">מַ</span><span class="root-letter">כְתֵּב</span><span class="affix-letter">ָה</span>', meaning: "שולחן המיועד לכתיבה" },
+                    { html: '<span class="root-letter">כְּת</span><span class="affix-letter">ִי</span><span class="root-letter">ב</span><span class="affix-letter">ָה</span>', meaning: "שם הפעולה" },
+                    { html: '<span class="root-letter">כּ</span><span class="affix-letter">וֹ</span><span class="root-letter">תֵב</span>', meaning: "בהווה - עושה את הפעולה עכשיו" },
+                    { html: '<span class="root-letter">כַּתָּב</span>', meaning: "איש שכותב לעיתון או לחדשות" },
+                    { html: '<span class="affix-letter">הַ</span><span class="root-letter">כְתָּב</span><span class="affix-letter">ָה</span>', meaning: "מבחן בו המורה מקריאה" },
+                    { html: '<span class="root-letter">כְּתָב</span>', meaning: "הצורה שבה האותיות נראות על הדף" }
+                ],
+                sentences: [
+                    { text: "אֲנִי אוֹהֵב לְ___ בַּמַּחְבֶּרֶת שֶׁלִּי.", answer: "כְּתֹב", options: ["כְּתֹב", "מִכְתָּב", "מַכְתֵּבָה"] },
+                    { text: "קִבַּלְתִּי ___ אָרֹךְ מִסָּבְתָא בַּדֹּאַר.", answer: "מִכְתָּב", options: ["הַכְתָּבָה", "מִכְתָּב", "כְּתִיבָה"] },
+                    { text: "אַבָּא קָנָה לִי ___ חֲדָשָׁה לַחֶדֶר.", answer: "מַכְתֵּבָה", options: ["מַכְתֵּבָה", "מִכְתָּב", "כּוֹתֵב"] },
+                    { text: "מָחָר יֵשׁ לָנוּ מִבְחַן ___ בַּכִּתָּה.", answer: "הַכְתָּבָה", options: ["כְּתָב", "מִכְתָּב", "הַכְתָּבָה"] },
+                    { text: "הַ___ שֶׁל דָּנִי יָפֶה וּבָרוּר.", answer: "כְּתָב", options: ["כּוֹתֵב", "כְּתָב", "כְּתִיבָה"] }
+                ],
+                marking: [
+                    { text: "מִכְתָּב", pattern: ["a","r","r","r"] }, { text: "מַכְתֵּבָה", pattern: ["a","r","r","r","a"] },
+                    { text: "כָּתַב", pattern: ["r","r","r"] }, { text: "כּוֹתֵב", pattern: ["r","a","r","r"] },
+                    { text: "כְּתִיבָה", pattern: ["r","r","a","r","a"] }, { text: "הַכְתָּבָה", pattern: ["a","r","r","r","a"] }
+                ],
+                verbs: createVerbs(
+                    { text: "כָּתַבְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "כָּתַבְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יִכְתֹּב", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נִכְתֹּב", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֶכְתֹּב", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תִּכְתֹּב", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "כָּתְבוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יִכְתְּבוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "כּוֹתֵב", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "כּוֹתֶבֶת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "הַמִּכְתָּב שֶׁל דָּנָה", 
+                    short: "דָּנָה אוֹהֶבֶת לִכְתֹּב. הִיא יוֹשֶׁבֶת בַּחֶדֶר וְכוֹתֶבֶת מִכְתָּב.",
+                    medium: "דָּנָה אוֹהֶבֶת לִכְתֹּב. כָּל יוֹם הִיא יוֹשֶׁבֶת לְיַד הַמַּכְתֵּבָה וְכוֹתֶבֶת מִכְתָּב לְסַבְתָּא. הַכְּתָב שֶׁלָּהּ בָּרוּר.",
+                    long: "דָּנָה יוֹשֶׁבֶת לְיַד הַמַּכְתֵּבָה וְכוֹתֶבֶת מִכְתָּב אָרֹךְ. הַכְּתִיבָה שֶׁלָּהּ מְסֻדֶּרֶת. כֻּלָּם יוֹדְעִים שֶׁהִיא אוֹהֶבֶת לִכְתֹּב."
+                }
+            },
+            {
+                id: "sgr", rootName: "ס - ג - ר", title: "משפחת ס.ג.ר", themeColor: "bg-emerald-100", buttonColor: "bg-emerald-500 hover:bg-emerald-600",
+                words: [
+                    { html: '<span class="root-letter">סָגַר</span>', meaning: "נעל, הפסיק להיות פתוח" },
+                    { html: '<span class="affix-letter">מִ</span><span class="root-letter">סְגֶּר</span><span class="affix-letter">ֶת</span>', meaning: "מסביב לתמונה" },
+                    { html: '<span class="root-letter">סְג</span><span class="affix-letter">וּ</span><span class="root-letter">ר</span><span class="affix-letter">ָה</span>', meaning: "ההפך מפתוחה" },
+                    { html: '<span class="affix-letter">הֶ</span><span class="root-letter">סְגֵּר</span>', meaning: "מקום לבעלי חיים" },
+                    { html: '<span class="affix-letter">מַ</span><span class="root-letter">סְגֵּר</span>', meaning: "אדם שמייצר מברזל" }
+                ],
+                sentences: [
+                    { text: "הַיֶּלֶד ___ אֶת הַדֶּלֶת בְּשֶׁקֶט.", answer: "סָגַר", options: ["סָגַר", "סְגוּרָה", "מִסְגֶּרֶת"] },
+                    { text: "הַחֲנוּת כְּבָר ___ כִּי מְאֻחָר.", answer: "סְגוּרָה", options: ["מִסְגֶּרֶת", "סָגַר", "סְגוּרָה"] },
+                    { text: "שַׂמְתִּי צִיּוּר בְּתוֹךְ ___.", answer: "מִסְגֶּרֶת", options: ["סוֹגֵר", "מִסְגֶּרֶת", "סְגוּרִים"] },
+                    { text: "כֶּלֶב עָזוּב נִלְקַח לְ___.", answer: "הֶסְגֵּר", options: ["הֶסְגֵּר", "סָגַר", "מִסְגֶּרֶת"] },
+                    { text: "צָרִיךְ לְהַדֵּק אֶת הַ___ שֶׁל הַשַּׂקִּית.", answer: "סוֹגֵר", options: ["מִסְגֶּרֶת", "סוֹגֵר", "סְגוּרָה"] }
+                ],
+                marking: [
+                    { text: "סָגַר", pattern: ["r","r","r"] }, { text: "מִסְגֶּרֶת", pattern: ["a","r","r","r","a"] },
+                    { text: "סְגוּרָה", pattern: ["r","r","a","r","a"] }, { text: "הֶסְגֵּר", pattern: ["a","r","r","r"] },
+                    { text: "מַסְגֵּר", pattern: ["a","r","r","r"] }, { text: "סוֹגֵר", pattern: ["r","a","r","r"] }
+                ],
+                verbs: createVerbs(
+                    { text: "סָגַרְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "סָגַרְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יִסְגֹּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נִסְגֹּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֶסְגֹּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תִּסְגֹּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "סָגְרוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יִסְגְּרוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "סוֹגֵר", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "סוֹגֶרֶת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "הַתְּמוּנָה", 
+                    short: "סָגְרוּ אֶת הַחַלּוֹן בַּחֶדֶר.", 
+                    medium: "שַׂמְתִּי תְּמוּנָה בְּמִסְגֶּרֶת וְהַדֶּלֶת סְגוּרָה.", 
+                    long: "אַבָּא סָגַר אֶת הַחַלּוֹן וְהַדֶּלֶת סְגוּרָה, הַתְּמוּנָה בְּמִסְגֶּרֶת." 
+                }
+            },
+            {
+                id: "shmr", rootName: "ש - מ - ר", title: "משפחת ש.מ.ר", themeColor: "bg-purple-100", buttonColor: "bg-purple-500 hover:bg-purple-600",
+                words: [
+                    { html: '<span class="root-letter">שָׁמַר</span>', meaning: "הגן, השגיח" },
+                    { html: '<span class="root-letter">ש</span><span class="affix-letter">וֹ</span><span class="root-letter">מֵר</span>', meaning: "איש שתפקידו להשגיח" },
+                    { html: '<span class="affix-letter">מִ</span><span class="root-letter">שְׁמֶר</span><span class="affix-letter">ֶת</span>', meaning: "זמן עבודה" },
+                    { html: '<span class="affix-letter">שִׁ</span><span class="root-letter">מּוּר</span><span class="affix-letter">ִים</span>', meaning: "אוכל בקופסה" },
+                    { html: '<span class="root-letter">שְׁמִיר</span><span class="affix-letter">ָה</span>', meaning: "הפעולה של השומר" }
+                ],
+                sentences: [
+                    { text: "הַ___ בַּכְּנִיסָה לְבֵית הַסֵּפֶר מְבָרֵךְ אוֹתָנוּ.", answer: "שׁוֹמֵר", options: ["שׁוֹמֵר", "מִשְׁמֶרֶת", "שִׁמּוּרִים"] },
+                    { text: "לְאִמָּא יֵשׁ הַיּוֹם ___ לַיְלָה.", answer: "מִשְׁמֶרֶת", options: ["שִׁמּוּרִים", "שׁוֹמֵר", "מִשְׁמֶרֶת"] },
+                    { text: "הַכֶּלֶב הַנֶּאֱמָן ___ עַל הֶחָצֵר.", answer: "שָׁמַר", options: ["שָׁמַר", "מִשְׁמֶרֶת", "שִׁמּוּרִים"] },
+                    { text: "כֻּלָּם חַיָּבִים ___ עַל הַכְּלָלִים.", answer: "לִשְׁמֹר", options: ["שָׁמַר", "לִשְׁמֹר", "שׁוֹמֵר"] },
+                    { text: "קָנִינוּ קֻפְסַת ___ תִּירָס.", answer: "שִׁמּוּרִים", options: ["שׁוֹמֵר", "שִׁמּוּרִים", "מִשְׁמֶרֶת"] }
+                ],
+                marking: [
+                    { text: "שָׁמַר", pattern: ["r","r","r"] }, { text: "שׁוֹמֵר", pattern: ["r","a","r","r"] },
+                    { text: "מִשְׁמֶרֶת", pattern: ["a","r","r","r","a"] }, { text: "שִׁמּוּרִים", pattern: ["r","r","a","r","a","a"] },
+                    { text: "שְׁמִירָה", pattern: ["r","r","a","r","a"] }, { text: "מִשְׁמָר", pattern: ["a","r","r","r"] }
+                ],
+                verbs: createVerbs(
+                    { text: "שָׁמַרְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "שָׁמַרְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יִשְׁמֹר", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נִשְׁמֹר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֶשְׁמֹר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תִּשְׁמֹר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "שָׁמְרוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יִשְׁמְרוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "שׁוֹמֵר", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "שׁוֹמֶרֶת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "הַשּׁוֹמֵר", 
+                    short: "הַשּׁוֹמֵר שָׁמַר.", 
+                    medium: "הַשּׁוֹמֵר עָשָׂה מִשְׁמֶרֶת וְשָׁמַר עַל כֻּלָּם.", 
+                    long: "שׁוֹמֵר אַמִּיץ עוֹשֶׂה מִשְׁמֶרֶת אֲרֻכָּה. כְּשֶׁהָיָה רָעֵב אָכַל שִׁמּוּרִים." 
+                }
+            },
+            {
+                id: "lmd", rootName: "ל - מ - ד", title: "משפחת ל.מ.ד", themeColor: "bg-yellow-100", buttonColor: "bg-yellow-500 hover:bg-yellow-600",
+                words: [
+                    { html: '<span class="root-letter">לָמַד</span>', meaning: "רכש ידע" },
+                    { html: '<span class="affix-letter">תַּ</span><span class="root-letter">לְמִיד</span>', meaning: "מי שהולך לבית הספר" },
+                    { html: '<span class="root-letter">לִמּ</span><span class="affix-letter">וּד</span><span class="root-letter">ִים</span>', meaning: "תהליך למידה בבית הספר" },
+                    { html: '<span class="affix-letter">מְ</span><span class="root-letter">לֻמָּד</span>', meaning: "אדם חכם שיודע הרבה" }
+                ],
+                sentences: [
+                    { text: "דָּנִי הוּא ___ מִצְטַיֵּן בַּכִּתָּה.", answer: "תַּלְמִיד", options: ["תַּלְמִיד", "לִמּוּדִים", "לָמַד"] },
+                    { text: "הַיּוֹם הִתְחִילָה שְׁנַת הַ___ בְּבָתֵּי הַסֵּפֶר.", answer: "לִמּוּדִים", options: ["תַּלְמִיד", "לָמַד", "לִמּוּדִים"] },
+                    { text: "הַפְּרוֹפֶסוֹר הוּא אָדָם ___ וְחָכָם.", answer: "מְלֻמָּד", options: ["לִמּוּדִים", "מְלֻמָּד", "תַּלְמִיד"] },
+                    { text: "קִבַּלְתִּי חוֹבֶרֶת ___ חֲדָשָׁה לַחֹפֶשׁ.", answer: "לְמִידָה", options: ["לְמִידָה", "תַּלְמִיד", "לָמַד"] },
+                    { text: "הַמּוֹרָה ___ אוֹתָנוּ שִׁיר יָפֶה.", answer: "לִמְּדָה", options: ["תַּלְמִיד", "לִמְּדָה", "לִמּוּדִים"] }
+                ],
+                marking: [
+                    { text: "לָמַד", pattern: ["r","r","r"] }, { text: "תַּלְמִיד", pattern: ["a","r","r","a","r"] },
+                    { text: "לִמּוּדִים", pattern: ["r","r","a","r","a","a"] }, { text: "מְלֻמָּד", pattern: ["a","r","r","r"] }
+                ],
+                verbs: createVerbs(
+                    { text: "לָמַדְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "לָמַדְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יִלְמַד", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נִלְמַד", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֶלְמַד", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תִּלְמַד", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "לָמְדוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יִלְמְדוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "לוֹמֵד", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "לוֹמֶדֶת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "הַתַּלְמִיד", 
+                    short: "תַּלְמִיד לָמַד.", 
+                    medium: "הַתַּלְמִיד לוֹמֵד לַמִּבְחָן וּמַצְלִיחַ בַּלִּמּוּדִים.", 
+                    long: "תַּלְמִיד חָרוּץ אוֹהֵב לִלְמֹד. כָּל שְׁנַת הַלִּמּוּדִים הוּא מַשְׁקִיעַ וְהוֹפֵךְ לִמְלֻמָּד." 
+                }
+            },
+            {
+                id: "shq", rootName: "ש - ח - ק", title: "משפחת ש.ח.ק", themeColor: "bg-red-100", buttonColor: "bg-red-500 hover:bg-red-600",
+                words: [
+                    { html: '<span class="affix-letter">מִ</span><span class="root-letter">שְׂחָק</span>', meaning: "פעילות של הנאה" },
+                    { html: '<span class="root-letter">שַׂחְק</span><span class="affix-letter">ָן</span>', meaning: "מי שמשתתף במשחק" },
+                    { html: '<span class="affix-letter">מִ</span><span class="root-letter">שְׂחֲק</span><span class="affix-letter">ִיָּה</span>', meaning: "מקום מיוחד למשחקים" },
+                    { html: '<span class="root-letter">שְׂחוֹק</span>', meaning: "צחוק" }
+                ],
+                sentences: [
+                    { text: "קָנִיתִי ___ קֻפְסָא חָדָשׁ.", answer: "מִשְׂחָק", options: ["מִשְׂחָק", "שַׂחְקָן", "מִשְׂחָקִיָּה"] },
+                    { text: "הַ___ בָּעַט אֶת הַכַּדּוּר לְתוֹךְ הַשַּׁעַר.", answer: "שַׂחְקָן", options: ["מִשְׂחָקִיָּה", "שַׂחְקָן", "מִשְׂחָק"] },
+                    { text: "אַחַר הַצָּהֳרַיִם הָלַכְנוּ לְ___ בַּקַּנְיוֹן.", answer: "מִשְׂחָקִיָּה", options: ["מִשְׂחָק", "שַׂחְקָן", "מִשְׂחָקִיָּה"] },
+                    { text: "אֲנִי מְאוֹד אוֹהֵב לְ___ עִם חֲבֵרִים.", answer: "לְשַׂחֵק", options: ["לְשַׂחֵק", "מִשְׂחָק", "שַׂחְקָן"] },
+                    { text: "זֶה לֹא אֲמִתִּי, זֶה רַק כְּ___.", answer: "מִשְׂחָק", options: ["שַׂחְקָן", "מִשְׂחָק", "שִׂחֲקוּ"] }
+                ],
+                marking: [
+                    { text: "מִשְׂחָק", pattern: ["a","r","r","r"] }, { text: "שַׂחְקָן", pattern: ["r","r","r","a","a"] },
+                    { text: "מִשְׂחָקִיָּה", pattern: ["a","r","r","r","a","a","a"] }, { text: "שְׂחוֹק", pattern: ["r","r","a","r"] }
+                ],
+                verbs: createVerbs(
+                    { text: "שִׂחַקְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "שִׂחַקְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יְשַׂחֵק", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נְשַׂחֵק", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֲשַׂחֵק", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תְּשַׂחֵק", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "שִׂחֲקוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יְשַׂחֲקוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "מְשַׂחֵק", pattern: ["a","r","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "מְשַׂחֶקֶת", pattern: ["a","r","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "בַּמִּשְׂחָקִיָּה", 
+                    short: "הַיֶּלֶד שִׂחֵק בְּמִשְׂחָק.", 
+                    medium: "הַשַּׂחְקָן הָלַךְ לַמִּשְׂחָקִיָּה וְקָנָה מִשְׂחַק קֻפְסָא.", 
+                    long: "בַּהַפְסָקָה כָּל שַׂחְקָן יָצָא לַמִּשְׂחָקִיָּה. הַיְּלָדִים שִׂחֲקוּ בְּכַדּוּר וְכֻלָּם הִסְכִּימוּ שֶׁזֶּה הָיָה מִשְׂחָק הוֹגֵן." 
+                }
+            },
+            {
+                id: "akl", rootName: "א - כ - ל", title: "משפחת א.כ.ל", themeColor: "bg-orange-100", buttonColor: "bg-orange-500 hover:bg-orange-600",
+                words: [
+                    { html: '<span class="root-letter">אָכַל</span>', meaning: "בלע מזון" },
+                    { html: '<span class="root-letter">אֹכֶל</span>', meaning: "המזון עצמו" },
+                    { html: '<span class="affix-letter">מַ</span><span class="root-letter">אֲכָל</span>', meaning: "מנת אוכל מוכנה" },
+                    { html: '<span class="affix-letter">הֶ</span><span class="root-letter">אֱכִיל</span>', meaning: "נתן אוכל למישהו אחר" }
+                ],
+                sentences: [
+                    { text: "הַיֶּלֶד ___ אֶת כָּל הַתַּפּוּחַ הַיָּרוֹק.", answer: "אָכַל", options: ["אָכַל", "אֹכֶל", "מַאֲכָל"] },
+                    { text: "פִּיצָה הִיא הַ___ הָאָהוּב עָלַי בְּיוֹתֵר.", answer: "מַאֲכָל", options: ["אָכַל", "מַאֲכָל", "אֹכֶל"] },
+                    { text: "אַל תִּשְׁכַּח ___ אֶת הֶחָתוּל בַּבֹּקֶר.", answer: "לְהַאֲכִיל", options: ["לְהַאֲכִיל", "אֹכֶל", "מַאֲכָל"] },
+                    { text: "חֲדַר הַ___ בַּקִּבּוּץ מְאוֹד מְרֻוָּח.", answer: "אֹכֶל", options: ["מַאֲכָל", "אֹכֶל", "הֶאֱכִיל"] },
+                    { text: "זְמַן הַ___ הִגִּיעַ.", answer: "אֲכִילָה", options: ["אֲכִילָה", "מַאֲכָל", "אֹכֶל"] }
+                ],
+                marking: [
+                    { text: "אָכַל", pattern: ["r","r","r"] }, { text: "אֹכֶל", pattern: ["r","r","r"] },
+                    { text: "מַאֲכָל", pattern: ["a","r","r","r"] }, { text: "אֲכִילָה", pattern: ["r","r","a","r","a"] }
+                ],
+                verbs: createVerbs(
+                    { text: "אָכַלְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "אָכַלְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יֹאכַל", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נֹאכַל", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֹכַל", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תֹּאכַל", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "אָכְלוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יֹאכְלוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "אוֹכֵל", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "אוֹכֶלֶת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "אֲרוּחַת צָהֳרַיִם", 
+                    short: "הַיֶּלֶד אָכַל אֹכֶל טָעִים.", 
+                    medium: "בַּחֲדַר הָאֹכֶל יֵשׁ אֹכֶל טָעִים. הַיֶּלֶד אָכַל מַאֲכָל שֶׁל סָבְתָא.", 
+                    long: "בַּחֲדַר הָאֹכֶל יֵשׁ אֹכֶל טָעִים. הַיֶּלֶד אָכַל מַאֲכָל שֶׁל סָבְתָא עִם תַּפּוּחֵי אֲדָמָה. דָּנִי אֲפִלּוּ הֶאֱכִיל אֶת הַכֶּלֶב." 
+                }
+            },
+            {
+                id: "ptx", rootName: "פ - ת - ח", title: "משפחת פ.ת.ח", themeColor: "bg-teal-100", buttonColor: "bg-teal-500 hover:bg-teal-600",
+                words: [
+                    { html: '<span class="root-letter">פָּתַח</span>', meaning: "הסיר חסימה" },
+                    { html: '<span class="root-letter">פָּתוּחַ</span>', meaning: "מצב שאינו סגור" },
+                    { html: '<span class="affix-letter">מַ</span><span class="root-letter">פְתֵּחַ</span>', meaning: "כלי לפתיחת מנעול" },
+                    { html: '<span class="root-letter">פְּתִיח</span><span class="affix-letter">ָה</span>', meaning: "טקס התחלה" }
+                ],
+                sentences: [
+                    { text: "אַבָּא לָקַח אֶת הַ___ כְּדֵי לְהִכָּנֵס לַבַּיִת.", answer: "מַפְתֵּחַ", options: ["מַפְתֵּחַ", "פָּתַח", "פָּתוּחַ"] },
+                    { text: "הַיֶּלֶד ___ אֶת הַחַלּוֹן כִּי הָיָה לוֹ חַם.", answer: "פָּתַח", options: ["פָּתוּחַ", "מַפְתֵּחַ", "פָּתַח"] },
+                    { text: "הַשַּׁעַר שֶׁל הַגַּן נִשְׁאַר ___ כָּל הַבֹּקֶר.", answer: "פָּתוּחַ", options: ["פָּתַח", "פָּתוּחַ", "מַפְתֵּחַ"] },
+                    { text: "טֶקֶס הַ___ שֶׁל הָאוֹלִימְפְּיָאדָה מַרְשִׁים.", answer: "פְּתִיחָה", options: ["מַפְתֵּחַ", "פְּתִיחָה", "פָּתוּחַ"] },
+                    { text: "הַסֵּפֶר ___ בְּדִיּוּק בָּעַמּוּד הַנָּכוֹן.", answer: "נִפְתַּח", options: ["פָּתוּחַ", "נִפְתַּח", "מַפְתֵּחַ"] }
+                ],
+                marking: [
+                    { text: "פָּתַח", pattern: ["r","r","r"] }, { text: "פָּתוּחַ", pattern: ["r","r","a","r"] },
+                    { text: "מַפְתֵּחַ", pattern: ["a","r","r","r"] }, { text: "פְּתִיחָה", pattern: ["r","r","a","r","a"] }
+                ],
+                verbs: createVerbs(
+                    { text: "פָּתַחְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "פָּתַחְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יִפְתַּח", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נִפְתַּח", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֶפְתַּח", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תִּפְתַּח", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "פָּתְחוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יִפְתְּחוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "פּוֹתֵחַ", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "פּוֹתַחַת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "הַדֶּלֶת הַפְּתוּחָה", 
+                    short: "אַבָּא פָּתַח בְּעֶזְרַת מַפְתֵּחַ.", 
+                    medium: "אַבָּא לָקַח מַפְתֵּחַ וּפָתַח אֶת הַדֶּלֶת. הַחַלּוֹן פָּתוּחַ.", 
+                    long: "אַבָּא לָקַח מַפְתֵּחַ גָּדוֹל וּפָתַח אֶת דֶּלֶת הָעֵץ. הַחַלּוֹן הָיָה פָּתוּחַ וְרוּחַ קַלָּה נָשְׁבָה. זוֹ פְּתִיחָה נִפְלָאָה לַיּוֹם." 
+                }
+            },
+            {
+                id: "lvs", rootName: "ל - ב - ש", title: "משפחת ל.ב.ש", themeColor: "bg-indigo-100", buttonColor: "bg-indigo-500 hover:bg-indigo-600",
+                words: [
+                    { html: '<span class="root-letter">לָבַשׁ</span>', meaning: "שם עליו בגד" },
+                    { html: '<span class="affix-letter">הַ</span><span class="root-letter">לְבָּש</span><span class="affix-letter">ָה</span>', meaning: "חנות למכירת בגדים" },
+                    { html: '<span class="affix-letter">תִּ</span><span class="root-letter">לְבֹּש</span><span class="affix-letter">ֶת</span>', meaning: "בגד אחיד של קבוצה" },
+                    { html: '<span class="root-letter">לְבוּשׁ</span>', meaning: "סגנון הבגדים" }
+                ],
+                sentences: [
+                    { text: "לְבֵית הַסֵּפֶר חוֹבָה לְהַגִּיעַ בְּ___ אֲחִידָה.", answer: "תִּלְבֹּשֶׁת", options: ["לָבַשׁ", "תִּלְבֹּשֶׁת", "לוֹבֵשׁ"] },
+                    { text: "קָנִינוּ מְעִיל חַם בַּחֲנוּת הַ___ בַּקַּנְיוֹן.", answer: "הַלְבָּשָׁה", options: ["הַלְבָּשָׁה", "תִּלְבֹּשֶׁת", "לוֹבֵשׁ"] },
+                    { text: "אֶתְמוֹל הַיֶּלֶד ___ אֶת הַמְּעִיל שֶׁלּוֹ.", answer: "לָבַשׁ", options: ["תִּלְבֹּשֶׁת", "לָבַשׁ", "הַלְבָּשָׁה"] },
+                    { text: "הַמֶּלֶךְ צִוָּה לְהָכִין לוֹ ___ חֲגִיגִי.", answer: "לְבוּשׁ", options: ["לְבוּשׁ", "לָבַשׁ", "הַלְבָּשָׁה"] },
+                    { text: "לַשַּׂחְקָנִים בַּהַצָּגָה יֵשׁ ___ שֶׁאַחְרַאי עַל הַבְּגָדִים.", answer: "מַלְבִּישׁ", options: ["מַלְבִּישׁ", "לוֹבֵשׁ", "תִּלְבֹּשֶׁת"] }
+                ],
+                marking: [
+                    { text: "לָבַשׁ", pattern: ["r","r","r"] }, { text: "הַלְבָּשָׁה", pattern: ["a","r","r","r","a"] },
+                    { text: "תִּלְבֹּשֶׁת", pattern: ["a","r","r","r","a"] }, { text: "לְבוּשׁ", pattern: ["r","r","a","r"] }
+                ],
+                verbs: createVerbs(
+                    { text: "לָבַשְׁתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "לָבַשְׁנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יִלְבַּשׁ", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נִלְבַּשׁ", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֶלְבַּשׁ", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תִּלְבַּשׁ", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "לָבְשׁוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יִלְבְּשׁוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "לוֹבֵשׁ", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "לוֹבֶשֶׁת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "הַבְּגָדִים הַחֲדָשִׁים", 
+                    short: "אֲנִי לוֹבֵשׁ מְעִיל חָדָשׁ.", 
+                    medium: "בַּחֹרֶף אֲנִי לוֹבֵשׁ מְעִיל. הַתִּלְבֹּשֶׁת שֶׁלָּנוּ יָפָה וְנִקְנְתָה בַּחֲנוּת הַלְבָּשָׁה.", 
+                    long: "בַּחֹרֶף מְאֹד קַר, וְלָכֵן אֲנִי לוֹבֵשׁ מְעִיל. בְּבֵית הַסֵּפֶר, הַתִּלְבֹּשֶׁת שֶׁלָּנוּ הִיא כְּחֻלָּה. אֶתְמוֹל בַּחֲנוּת הַהַלְבָּשָׁה אַבָּא קָנָה לִי סְוֶדֶר יָפֶה." 
+                }
+            },
+            {
+                id: "smA", rootName: "ש - מ - ע", title: "משפחת ש.מ.ע", themeColor: "bg-fuchsia-100", buttonColor: "bg-fuchsia-500 hover:bg-fuchsia-600",
+                words: [
+                    { html: '<span class="root-letter">שָׁמַע</span>', meaning: "קלט צליל באוזניו" }, 
+                    { html: '<span class="affix-letter">מַ</span><span class="root-letter">שְׁמָע</span><span class="affix-letter">וּת</span>', meaning: "הפירוש או הכוונה" },
+                    { html: '<span class="root-letter">שְׁמִיע</span><span class="affix-letter">ָה</span>', meaning: "אחד מחמשת החושים" },
+                    { html: '<span class="affix-letter">מִ</span><span class="root-letter">שְׁמַע</span><span class="affix-letter">ַת</span>', meaning: "ציות לכללים" }
+                ],
+                sentences: [
+                    { text: "אַבָּא ___ אֶתְמוֹל אֶת הַחֲדָשׁוֹת בָּרַדְיוֹ.", answer: "שָׁמַע", options: ["שָׁמַע", "שׁוֹמֵעַ", "שְׁמִיעָה"] },
+                    { text: "לַכֶּלֶב שֶׁלָּנוּ יֵשׁ חוּשׁ ___ מַמָּשׁ מְצֻיָּן.", answer: "שְׁמִיעָה", options: ["שְׁמִיעָה", "מַשְׁמָעוּת", "שׁוֹמֵעַ"] },
+                    { text: "הַמְּנַהֵל בִּקֵּשׁ לִשְׁמֹר עַל ___ בַּטֶּקֶס.", answer: "מִשְׁמַעַת", options: ["שָׁמַע", "מִשְׁמַעַת", "שׁוֹמֵעַ"] },
+                    { text: "לַמִּלָּה הַזּוֹ יֵשׁ ___ עֲמֻקָּה וַחֲשׁוּבָה.", answer: "מַשְׁמָעוּת", options: ["מַשְׁמָעוּת", "שְׁמִיעָה", "שׁוֹמֵעַ"] },
+                    { text: "הָאַמְבּוּלַנְס ___ צְפִירָה חֲזָקָה בָּרְחוֹב.", answer: "הִשְׁמִיעַ", options: ["הִשְׁמִיעַ", "מַשְׁמָעוּת", "שָׁמַע"] }
+                ],
+                marking: [
+                    { text: "שָׁמַע", pattern: ["r","r","r"] }, { text: "מַשְׁמָעוּת", pattern: ["a","r","r","a","a","a"] },
+                    { text: "שְׁמִיעָה", pattern: ["r","r","a","r","a"] }, { text: "מִשְׁמַעַת", pattern: ["a","r","r","r","a"] }
+                ],
+                verbs: createVerbs(
+                    { text: "שָׁמַעְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "שָׁמַעְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יִשְׁמַע", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נִשְׁמַע", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "נִשְׁמָע", pattern: ["a","r","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "אֶשְׁמַע", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תִּשְׁמַע", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "שָׁמְעוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יִשְׁמְעוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "שׁוֹמֵעַ", pattern: ["r","a","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "שׁוֹמַעַת", pattern: ["r","a","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "שׁוֹמְעִים מוּזִיקָה", 
+                    short: "הַשִּׁיר נָעִים לִשְׁמִיעָה.", 
+                    medium: "אֲנִי שׁוֹמֵעַ שִׁיר בָּרַדְיוֹ. לַשִּׁיר יֵשׁ מַשְׁמָעוּת עֲמֻקָּה וְהוּא נָעִים לִשְׁמִיעָה.", 
+                    long: "אֲנִי שׁוֹמֵעַ שִׁיר מְאֹד יָפֶה בָּרַדְיוֹ. לַשִּׁיר יֵשׁ מַשְׁמָעוּת עֲמֻקָּה עַל חֲבֵרוּת. הַיְּלָדִים הִקְשִׁיבוּ בְּמִשְׁמַעַת לַצְּלִילִים הַנְּעִימִים לִשְׁמִיעָה." 
+                }
+            },
+            {
+                id: "spr", rootName: "ס - פ - ר", title: "משפחת ס.פ.ר", themeColor: "bg-cyan-100", buttonColor: "bg-cyan-500 hover:bg-cyan-600",
+                words: [
+                    { html: '<span class="root-letter">סֵפֶר</span>', meaning: "דפים מודפסים לקריאה" },
+                    { html: '<span class="root-letter">סִפְר</span><span class="affix-letter">ִיָּה</span>', meaning: "מקום בו שומרים ומשאילים ספרים" },
+                    { html: '<span class="root-letter">סִפּוּר</span>', meaning: "מעשייה או עלילה" },
+                    { html: '<span class="affix-letter">מִ</span><span class="root-letter">סְפָּר</span>', meaning: "ספרה חשבונית" },
+                    { html: '<span class="root-letter">סַפָּר</span>', meaning: "איש שמעצב תספורות (מקור משורש ס.פ.ר - לגזור)" }
+                ],
+                sentences: [
+                    { text: "סָבָּא ___ לִי אַגָּדָה יָפָה לִפְנֵי הַשֵּׁינָה.", answer: "סִפֵּר", options: ["סִפֵּר", "סֵפֶר", "סִפְרִיָּה"] },
+                    { text: "אֲנִי קוֹרֵא ___ מְעַנְיֵן עַל חַיּוֹת הַיַּעַר.", answer: "סֵפֶר", options: ["סֵפֶר", "סִפְרִיָּה", "סִפּוּר"] },
+                    { text: "הָלַכְנוּ לַ___ כְּדֵי לְהַחֲלִיף סְפָרִים לַחֹפֶשׁ.", answer: "סִפְרִיָּה", options: ["סִפּוּר", "סִפְרִיָּה", "סִפֵּר"] },
+                    { text: "הִיא כָּתְבָה אֶת הַ___ עֶשֶׂר עַל הַלּוּחַ.", answer: "מִסְפָּר", options: ["סֵפֶר", "מִסְפָּר", "סִפּוּר"] },
+                    { text: "הַ___ עִצֵּב לִי תִּסְפֹּרֶת חֲדָשָׁה וְיָפָה.", answer: "סַפָּר", options: ["סֵפֶר", "סַפָּר", "סִפְרִיָּה"] }
+                ],
+                marking: [
+                    { text: "סֵפֶר", pattern: ["r","r","r"] }, { text: "סִפְרִיָּה", pattern: ["r","r","r","a","a"] },
+                    { text: "סִפּוּר", pattern: ["r","r","a","r"] }, { text: "מִסְפָּר", pattern: ["a","r","r","r"] },
+                    { text: "סַפָּר", pattern: ["r","r","r"] }
+                ],
+                verbs: createVerbs(
+                    { text: "סִפַּרְתִּי", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אני" },
+                    { text: "סִפַּרְנוּ", pattern: ["r","r","r","a","a"], tense: "עבר", person: "אנחנו" },
+                    { text: "יְסַפֵּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "הוא" },
+                    { text: "נְסַפֵּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אנחנו" },
+                    { text: "אֲסַפֵּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אני" },
+                    { text: "תְּסַפֵּר", pattern: ["a","r","r","r"], tense: "עתיד", person: "אתה" },
+                    { text: "סִפְּרוּ", pattern: ["r","r","r","a"], tense: "עבר", person: "הם" },
+                    { text: "יְסַפְּרוּ", pattern: ["a","r","r","r","a"], tense: "עתיד", person: "הם" },
+                    { text: "מְסַפֵּר", pattern: ["a","r","r","r"], tense: "הווה", person: "הוא (זכר)" },
+                    { text: "מְסַפֶּרֶת", pattern: ["a","r","r","r","a"], tense: "הווה", person: "היא (נקבה)" }
+                ),
+                story: { 
+                    title: "הַסִּפְרִיָּה", 
+                    short: "הָלַכְתִּי לַסִּפְרִיָּה לָקַחַת סֵפֶר.", 
+                    medium: "הָלַכְתִּי לַסִּפְרִיָּה לָקַחַת סֵפֶר מַתָּנָה. הַסַּפְרָנִית סִפְּרָה לָנוּ סִפּוּר מְיֻחָד.", 
+                    long: "הָלַכְתִּי לַסִּפְרִיָּה הַגְּדוֹלָה לָקַחַת סֵפֶר. הַסַּפְרָנִית סִפְּרָה לָנוּ סִפּוּר מְיֻחָד עַל מַסָּע לֶחָלָל. אֲנִי מְאֹד אוֹהֵב לִשְׁמֹעַ סִפּוּרִים מְרַתְּקִים." 
+                }
+            }
+        ];
+
+        // --- 3. Utility Functions ---
+        
+        function stripHTMLAndFormat(htmlStr) {
+            if (!htmlStr) return '';
+            let tmp = document.createElement('div');
+            tmp.innerHTML = htmlStr;
+            function processNode(node) {
+                if (node.nodeType === 3) {
+                    if (nikudMode === 'none') {
+                        node.nodeValue = node.nodeValue.replace(/[\u0591-\u05C7]/g, '');
+                    } else if (nikudMode === 'partial') {
+                        node.nodeValue = node.nodeValue.replace(/[\u05B0-\u05B8\u05BB\u05C7]/g, '');
+                    }
+                } else { node.childNodes.forEach(processNode); }
+            }
+            processNode(tmp);
+            return tmp.innerHTML;
+        }
+
+        function getRawText(htmlStr) {
+            let tmp = document.createElement("div");
+            tmp.innerHTML = htmlStr;
+            return tmp.textContent || tmp.innerText || "";
+        }
+
+        window.changeNikud = function(mode) {
+            nikudMode = mode;
+            render(); 
+        };
+
+        function showFeedback(msg, type) {
+            const fDiv = document.getElementById('feedbackDiv');
+            if(fDiv) {
+                fDiv.innerHTML = msg;
+                fDiv.className = `mt-8 p-4 rounded-xl text-2xl font-bold text-center animate-pop ${type === 'positive' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+                fDiv.classList.remove('hidden');
+            }
+        }
+
+        function hideFeedback() {
+            const fDiv = document.getElementById('feedbackDiv');
+            if(fDiv) fDiv.classList.add('hidden');
+        }
+
+        function shuffle(array) {
+            return array.sort(() => 0.5 - Math.random());
+        }
+
+        function getTenQuestions(arr) {
+            if(!arr || arr.length === 0) return [];
+            let res = [...arr];
+            while(res.length < 10) {
+                res = res.concat([...arr]);
+            }
+            return shuffle(res).slice(0, 10);
+        }
+
+        // --- Top Navigation Menu Logic ---
+        function getTaskCategories() {
+            const categories = [];
+            currentTaskQuestions.forEach((q, index) => {
+                let catId = q.taskType === 'grammar' ? `grammar-${q.mode}` : q.taskType;
+                if (!categories.find(c => c.id === catId)) {
+                    categories.push({
+                        id: catId,
+                        name: getCategoryName(catId),
+                        startIndex: index
+                    });
+                }
+            });
+            return categories;
+        }
+
+        function getCategoryName(id) {
+            const names = {
+                'multiVocab': '📖 אוצר מילים',
+                'sentence': '✍️ משפטים',
+                'oddOne': '🕵️‍♀️ יוצא דופן',
+                'mark': '🖌️ סימון שורש',
+                'grammar-tenses': '⏳ זמנים',
+                'grammar-persons': '👤 גופים'
+            };
+            return names[id] || id;
+        }
+
+        window.jumpToTask = function(index) {
+            currentTaskIndex = index;
+            grammarPhase = 1;
+            userMarkingPattern = [];
+            renderNextTask();
+        };
+
+        // --- Custom Root Auto-Generator ---
+        function getHebrewBlocks(word) {
+            return word.match(/[\u0590-\u05FF][\u0591-\u05C7]*/g) || [];
+        }
+
+        function generatePatternAndHtml(word, rootLettersStr) {
+            const rawRootChars = rootLettersStr.replace(/[^א-ת]/g, '').split('');
+            const finalMap = {'כ':'ך', 'מ':'ם', 'נ':'ן', 'פ':'ף', 'צ':'ץ'};
+            let expandedRoots = [...rawRootChars];
+            rawRootChars.forEach(l => { if(finalMap[l]) expandedRoots.push(finalMap[l]); });
+
+            let blocks = getHebrewBlocks(word);
+            let html = '';
+            let pattern = [];
+
+            blocks.forEach(block => {
+                let baseChar = block.replace(/[\u0591-\u05C7]/g, '');
+                if (expandedRoots.includes(baseChar)) {
+                    html += `<span class="root-letter">${block}</span>`;
+                    pattern.push('r');
+                } else {
+                    html += `<span class="affix-letter">${block}</span>`;
+                    pattern.push('a');
+                }
+            });
+            return { html, pattern };
+        }
+
+        window.openCustomModal = function() { document.getElementById('customRootModal').classList.remove('hidden'); };
+        window.closeCustomModal = function() {
+            document.getElementById('customRootModal').classList.add('hidden');
+            document.getElementById('cRootName').value = '';
+            document.getElementById('cWords').value = '';
+            document.getElementById('cSentences').value = '';
+            document.getElementById('cVerbs').value = '';
+        };
+
+        window.saveCustomRoot = function() {
+            const rootName = document.getElementById('cRootName').value.trim();
+            const wordsStr = document.getElementById('cWords').value.trim();
+            const sentencesStr = document.getElementById('cSentences').value.trim();
+            const verbsStr = document.getElementById('cVerbs').value.trim();
+
+            if(!rootName || !wordsStr) {
+                alert('אנא הזינו את אותיות השורש ולפחות מילה אחת למשפחה.');
+                return;
+            }
+
+            const cleanRootLetters = rootName.replace(/[^א-ת]/g, '');
+            const wordsArrRaw = wordsStr.split(',').map(w => w.trim()).filter(Boolean);
+            
+            const parsedWords = wordsArrRaw.map(w => {
+                const { html } = generatePatternAndHtml(w, cleanRootLetters);
+                return { html: html, meaning: "מילה מותאמת אישית" };
+            });
+
+            const parsedMarking = wordsArrRaw.map(w => {
+                const { pattern } = generatePatternAndHtml(w, cleanRootLetters);
+                return { text: w, pattern: pattern };
+            });
+
+            const parsedSentences = [];
+            if (sentencesStr) {
+                sentencesStr.split('\n').forEach(line => {
+                    const parts = line.split('|');
+                    if (parts.length >= 2) {
+                        const sText = parts[0].trim();
+                        const sAnswer = parts[1].trim();
+                        let options = [sAnswer];
+                        const others = shuffle(wordsArrRaw.filter(w => w !== sAnswer)).slice(0, 2);
+                        options.push(...others);
+                        if(options.length < 3) options.push("מילה_אחרת", "עוד_מילה");
+                        parsedSentences.push({ text: sText, answer: sAnswer, options: options });
+                    }
+                });
+            }
+
+            const parsedVerbs = [];
+            if (verbsStr) {
+                verbsStr.split('\n').forEach(line => {
+                    const parts = line.split('|');
+                    if (parts.length >= 3) {
+                        const { pattern } = generatePatternAndHtml(parts[0].trim(), cleanRootLetters);
+                        parsedVerbs.push({ text: parts[0].trim(), tense: parts[1].trim(), person: parts[2].trim(), pattern: pattern });
+                    }
+                });
+            }
+
+            const themeColor = customThemeColors[customColorIndex % customThemeColors.length];
+            customColorIndex++;
+
+            database.push({
+                id: "custom_" + Date.now(),
+                rootName: rootName, title: `משפחת ${rootName}`,
+                themeColor: themeColor, buttonColor: "bg-gray-500 hover:bg-gray-600",
+                words: parsedWords, sentences: parsedSentences, marking: parsedMarking, verbs: parsedVerbs,
+                story: { title: "סִפּוּר מֻתְאָם", short: "הַסִּפּוּר אֵינוֹ זָמִין.", medium: "הַסִּפּוּר אֵינוֹ זָמִין.", long: "הַסִּפּוּר אֵינוֹ זָמִין." }
+            });
+            
+            closeCustomModal();
+            renderHome();
+        };
+
+        // --- 4. Main Rendering Logic ---
+        const appDiv = document.getElementById('app');
+
+        function render() {
+            appDiv.innerHTML = ''; 
+            hideFeedback();
+            window.scrollTo(0, 0);
+            
+            if (currentScreen === 'home') renderHome();
+            else if (currentScreen === 'vocab') renderVocab();
+            else if (currentScreen === 'story') renderStory();
+            else if (currentScreen === 'runningTask') renderNextTask();
+            else if (currentScreen === 'finish') renderFinish();
+        }
+
+        // --- The New Unified Home Screen ---
+        function renderHome() {
+            let html = `
+                <div class="animate-pop w-full mx-auto pb-8">
+                    <div class="text-center mb-8">
+                        <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-2">מחולל השורשים החכם</h1>
+                        <p class="text-xl text-gray-600">סמנו ב-V אילו שורשים ואילו משימות תרצו לתרגל היום</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        
+                        <!-- Right Column: Roots Selection -->
+                        <div class="bg-blue-50 rounded-2xl p-6 border-2 border-blue-100 shadow-sm flex flex-col">
+                            <div class="flex justify-between items-center mb-4 border-b border-blue-200 pb-2">
+                                <h2 class="text-2xl font-bold text-blue-900">1. בחירת שורשים</h2>
+                                <button onclick="openCustomModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm">+ שורש חדש</button>
+                            </div>
+                            
+                            <div class="flex-grow overflow-y-auto max-h-[400px] space-y-3 pr-2">
+            `;
+            
+            database.forEach(root => {
+                html += `
+                                <div class="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200 hover:border-blue-300 transition-all shadow-sm">
+                                    <label class="flex items-center gap-3 cursor-pointer group flex-grow">
+                                        <div class="relative w-7 h-7">
+                                            <input type="checkbox" value="${root.id}" class="peer absolute opacity-0 w-0 h-0 gen-root-cb">
+                                            <div class="w-7 h-7 border-2 border-gray-300 rounded bg-white flex items-center justify-center transition-all peer-checked:bg-blue-500 peer-checked:border-blue-500">
+                                                <svg class="w-5 h-5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                        </div>
+                                        <span class="text-xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">${stripHTMLAndFormat(root.rootName)}</span>
+                                    </label>
+                                    <button onclick="goToLearn('${root.id}')" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-1">
+                                        <span>📖</span> למידה
+                                    </button>
+                                </div>
+                `;
+            });
+
+            html += `
+                            </div>
+                        </div>
+
+                        <!-- Left Column: Tasks Selection -->
+                        <div class="bg-orange-50 rounded-2xl p-6 border-2 border-orange-100 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <div class="mb-4 border-b border-orange-200 pb-2">
+                                    <h2 class="text-2xl font-bold text-orange-900">2. סוגי תרגול (בסדר קבוע)</h2>
+                                    <p class="text-sm text-orange-700">10 תרגילים יופקו מכל נושא, יופיעו בדיוק בסדר הזה</p>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 shadow-sm">
+                                        <input type="checkbox" value="vocab" class="gen-task-cb w-6 h-6 text-orange-500 rounded focus:ring-orange-500" checked>
+                                        <span class="text-xl font-bold text-gray-800 flex-grow">קריאת מילים (בנק מילים) 📖</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 shadow-sm">
+                                        <input type="checkbox" value="sentence" class="gen-task-cb w-6 h-6 text-orange-500 rounded focus:ring-orange-500" checked>
+                                        <span class="text-xl font-bold text-gray-800 flex-grow">השלמת משפטים ✍️</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 shadow-sm">
+                                        <input type="checkbox" value="oddOne" class="gen-task-cb w-6 h-6 text-orange-500 rounded focus:ring-orange-500" checked>
+                                        <span class="text-xl font-bold text-gray-800 flex-grow">יוצא דופן 🕵️‍♀️</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 shadow-sm">
+                                        <input type="checkbox" value="mark" class="gen-task-cb w-6 h-6 text-orange-500 rounded focus:ring-orange-500" checked>
+                                        <span class="text-xl font-bold text-gray-800 flex-grow">סימון שורש ומוספיות 🖌️</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 shadow-sm">
+                                        <input type="checkbox" value="tenses" class="gen-task-cb w-6 h-6 text-orange-500 rounded focus:ring-orange-500" checked>
+                                        <span class="text-xl font-bold text-gray-800 flex-grow">תרגול זמנים ⏳</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 shadow-sm">
+                                        <input type="checkbox" value="persons" class="gen-task-cb w-6 h-6 text-orange-500 rounded focus:ring-orange-500" checked>
+                                        <span class="text-xl font-bold text-gray-800 flex-grow">תרגול גופים 👤</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button onclick="startMixedPractice()" class="mt-8 w-full bg-orange-500 hover:bg-orange-600 text-white px-8 py-5 rounded-2xl font-black text-2xl shadow-lg transition-transform transform hover:scale-105 active:scale-95">
+                                התחל תרגול! 🚀
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+            appDiv.innerHTML = html;
+        }
+
+        window.goToLearn = function(rootId) {
+            activeRootId = rootId;
+            navigate('vocab');
+        };
+
+        // --- Unified Generator Builder - NO SHUFFLING OF TYPES ---
+        window.startMixedPractice = function() {
+            const selectedRootIds = Array.from(document.querySelectorAll('.gen-root-cb:checked')).map(cb => cb.value);
+            const selectedTasks = Array.from(document.querySelectorAll('.gen-task-cb:checked')).map(cb => cb.value);
+
+            if(selectedRootIds.length === 0) { alert('יש לסמן לפחות שורש אחד בוי.'); return; }
+            if(selectedTasks.length === 0) { alert('יש לסמן לפחות סוג תרגול אחד בוי.'); return; }
+
+            let finalPool = [];
+
+            // 1. Vocab
+            if(selectedTasks.includes('vocab')) {
+                finalPool.push({ taskType: 'multiVocab', rootIds: selectedRootIds });
+            }
+
+            // 2. Sentence Task
+            if(selectedTasks.includes('sentence')) {
+                let sentences = [];
+                selectedRootIds.forEach(id => {
+                    const r = database.find(x => x.id === id);
+                    if(r && r.sentences) sentences.push(...r.sentences.map(s => ({...s, taskType: 'sentence', sourceColor: r.themeColor})));
+                });
+                finalPool.push(...getTenQuestions(sentences));
+            }
+
+            // 3. Odd One Out Task
+            if(selectedTasks.includes('oddOne')) {
+                let oddOnes = [];
+                for(let i=0; i<10; i++) {
+                    const rRootId = selectedRootIds[Math.floor(Math.random() * selectedRootIds.length)];
+                    const rRoot = database.find(r => r.id === rRootId);
+                    
+                    const otherRoots = database.filter(r => r.id !== rRoot.id);
+                    if(otherRoots.length === 0) continue; 
+
+                    const allCurrentRaw = [...(rRoot.words||[]).map(w=>getRawText(w.html)), ...(rRoot.sentences||[]).map(s=>getRawText(s.answer))];
+                    if(allCurrentRaw.length === 0) continue;
+
+                    const uniqueCurrent = [...new Set(allCurrentRaw)].sort(() => 0.5 - Math.random()).slice(0, 3);
+                    const randomOtherRoot = otherRoots[Math.floor(Math.random() * otherRoots.length)];
+                    const allOtherRaw = [...(randomOtherRoot.words||[]).map(w=>getRawText(w.html)), ...(randomOtherRoot.sentences||[]).map(s=>getRawText(s.answer))];
+                    if(allOtherRaw.length === 0) continue;
+
+                    const oddWord = allOtherRaw[Math.floor(Math.random() * allOtherRaw.length)];
+                    let options = [...uniqueCurrent.map(w => ({text: w, isCorrect: false})), {text: oddWord, isCorrect: true}];
+                    
+                    oddOnes.push({
+                        taskType: 'oddOne',
+                        options: shuffle(options),
+                        targetRootName: rRoot.rootName,
+                        sourceColor: rRoot.themeColor
+                    });
+                }
+                finalPool.push(...oddOnes);
+            }
+
+            // 4. Marking Task
+            if(selectedTasks.includes('mark')) {
+                let marks = [];
+                selectedRootIds.forEach(id => {
+                    const r = database.find(x => x.id === id);
+                    if(r && r.marking) marks.push(...r.marking.map(m => ({...m, taskType: 'mark', sourceColor: r.themeColor, rootBtn: r.buttonColor})));
+                });
+                finalPool.push(...getTenQuestions(marks));
+            }
+
+            // 5. Tenses Task
+            if(selectedTasks.includes('tenses')) {
+                let verbs = [];
+                selectedRootIds.forEach(id => {
+                    const r = database.find(x => x.id === id);
+                    if(r && r.verbs) verbs.push(...r.verbs.map(v => ({...v, taskType: 'grammar', mode: 'tenses', sourceColor: r.themeColor})));
+                });
+                finalPool.push(...getTenQuestions(verbs));
+            }
+
+            // 6. Persons Task
+            if(selectedTasks.includes('persons')) {
+                let verbs = [];
+                selectedRootIds.forEach(id => {
+                    const r = database.find(x => x.id === id);
+                    if(r && r.verbs) verbs.push(...r.verbs.map(v => ({...v, taskType: 'grammar', mode: 'persons', sourceColor: r.themeColor})));
+                });
+                finalPool.push(...getTenQuestions(verbs));
+            }
+
+            if(finalPool.length === 0) {
+                alert('לא נמצאו שאלות עבור סוגי התרגול שנבחרו. נסו בחירה אחרת.'); return;
+            }
+
+            currentTaskQuestions = finalPool;
+            currentTaskIndex = 0;
+            grammarPhase = 1;
+            
+            navigate('runningTask');
+        }
+
+        // --- Task Runner ---
+        function renderNextTask() {
+            if (currentTaskIndex >= currentTaskQuestions.length) {
+                return navigate('finish');
+            }
+
+            const task = currentTaskQuestions[currentTaskIndex];
+            
+            if (task.taskType === 'multiVocab') renderMultiVocab(task);
+            else if (task.taskType === 'sentence') renderSentenceCore(task);
+            else if (task.taskType === 'oddOne') renderOddOneCore(task);
+            else if (task.taskType === 'grammar') renderGrammarCore(task);
+            else if (task.taskType === 'mark') renderMarkCore(task);
+        }
+
+        // --- New Shared Header with Navigation Tabs ---
+        function buildTaskHeader(title) {
+            const categories = getTaskCategories();
+            const currentTask = currentTaskQuestions[currentTaskIndex];
+            const currentCatId = currentTask.taskType === 'grammar' ? `grammar-${currentTask.mode}` : currentTask.taskType;
+
+            let tabsHtml = `<div class="flex flex-wrap justify-center gap-2 mb-6 bg-blue-50/50 p-2 rounded-2xl shadow-sm border border-blue-100">`;
+            categories.forEach(cat => {
+                const isActive = cat.id === currentCatId;
+                const activeClass = isActive 
+                    ? 'bg-orange-500 text-white font-bold shadow-md transform scale-105 ring-2 ring-orange-300' 
+                    : 'bg-white text-gray-600 hover:bg-orange-100 hover:text-orange-700 font-medium border border-gray-200';
+                tabsHtml += `<button onclick="jumpToTask(${cat.startIndex})" class="px-3 md:px-5 py-2 rounded-xl transition-all text-sm md:text-base ${activeClass}">${cat.name}</button>`;
+            });
+            tabsHtml += `</div>`;
+
+            return `
+                <div class="flex justify-between items-center mb-4">
+                    <button onclick="navigate('home')" class="text-gray-500 hover:text-gray-800 font-medium bg-gray-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><span>&rarr;</span> <span>תפריט ראשי</span></button>
+                    <div class="bg-blue-100 border border-blue-200 px-4 py-2 rounded-xl font-bold text-blue-800 text-sm">שלב ${currentTaskIndex + 1} מתוך ${currentTaskQuestions.length}</div>
+                </div>
+                ${tabsHtml}
+                <h2 class="text-3xl font-bold text-center mb-8 text-gray-800">${stripHTMLAndFormat(title)}</h2>
+            `;
+        }
+
+        // --- Core Renders for specific task types ---
+        
+        function renderMultiVocab(task) {
+            let html = `
+                <div class="animate-pop w-full max-w-4xl mx-auto">
+                    ${buildTaskHeader('קריאת מילים (בנק המילים)')}
+                    <p class="text-xl text-center mb-6 text-gray-600">קראו היטב את המילים של השורשים שבחרתם לפני שנתחיל בתרגול:</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            `;
+            
+            task.rootIds.forEach(id => {
+                const root = database.find(r => r.id === id);
+                if(root && root.words) {
+                    root.words.forEach(word => {
+                        html += `
+                            <div class="bg-white border-2 border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+                                <div class="text-3xl mb-2 font-bold ${root.themeColor} px-4 py-2 rounded-xl" dir="rtl">${stripHTMLAndFormat(word.html)}</div>
+                                <div class="text-sm text-gray-600 text-center font-medium">${stripHTMLAndFormat(word.meaning)}</div>
+                                <div class="text-xs text-gray-500 mt-2 font-bold">${stripHTMLAndFormat('משפחת ' + root.rootName)}</div>
+                            </div>
+                        `;
+                    });
+                }
+            });
+            
+            html += `
+                    </div>
+                    <div class="text-center">
+                        <button onclick="finishVocabTask()" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-full font-bold text-xl shadow-md transition-all">סיימתי לקרוא, בואו נתרגל!</button>
+                    </div>
+                </div>
+            `;
+            appDiv.innerHTML = html;
+        }
+
+        window.finishVocabTask = function() {
+            currentTaskIndex++;
+            renderNextTask();
+        };
+
+        function renderSentenceCore(task) {
+            const formattedSentence = stripHTMLAndFormat(task.text);
+            const themeClass = task.sourceColor || 'bg-blue-50';
+            
+            let html = `
+                <div class="animate-pop w-full max-w-3xl mx-auto">
+                    ${buildTaskHeader('השלמת משפטים')}
+                    <div class="${themeClass} border rounded-2xl p-8 mb-8 text-center shadow-inner">
+                        <p class="text-3xl font-medium leading-relaxed" id="sentenceText">
+                            ${formattedSentence.replace('___', '<span class="inline-block border-b-4 border-gray-400 w-24 mx-2"></span>')}
+                        </p>
+                    </div>
+                    <p class="text-center text-lg text-gray-600 mb-4">באיזו מילה נשתמש?</p>
+                    <div class="flex flex-wrap justify-center gap-4" id="optionsGrid">
+            `;
+            shuffle([...task.options]).forEach((opt, idx) => {
+                html += `<button onclick="checkSentence('${opt}', 'btn-${idx}')" id="btn-${idx}" class="text-2xl font-bold bg-white border-2 border-gray-300 rounded-xl px-8 py-4 hover:bg-gray-50 transition-all">${stripHTMLAndFormat(opt)}</button>`;
+            });
+            html += `</div><div id="feedbackDiv" class="hidden"></div></div>`;
+            appDiv.innerHTML = html;
+        }
+
+        window.checkSentence = function(selectedWord, btnId) {
+            const task = currentTaskQuestions[currentTaskIndex];
+            const btn = document.getElementById(btnId);
+            if (selectedWord === task.answer) {
+                btn.classList.add('bg-green-500', 'text-white', 'border-green-600');
+                document.getElementById('optionsGrid').style.pointerEvents = 'none';
+                document.getElementById('sentenceText').innerHTML = stripHTMLAndFormat(task.text).replace('___', `<span class="text-blue-600 font-bold border-b-4 border-blue-600 px-2 animate-pop inline-block">${stripHTMLAndFormat(selectedWord)}</span>`);
+                showFeedback('מצוין! כל הכבוד! 🌟', 'positive');
+                setTimeout(() => { currentTaskIndex++; renderNextTask(); }, 1500);
+            } else {
+                btn.classList.add('bg-red-500', 'text-white', 'border-red-600');
+                showFeedback('נסה שוב! 🤔', 'negative');
+                setTimeout(() => { btn.classList.remove('bg-red-500', 'text-white', 'border-red-600'); hideFeedback(); }, 1200);
+            }
+        };
+
+        function renderOddOneCore(task) {
+            const themeClass = task.sourceColor || 'bg-gray-100';
+            let html = `
+                <div class="animate-pop w-full max-w-2xl mx-auto">
+                    ${buildTaskHeader('מי יוצא דופן?')}
+                    <p class="text-xl text-center mb-10 text-gray-600">מצאו את המילה <strong class="text-red-500">שאין</strong> בה את השורש <strong class="${themeClass} px-2 rounded">${stripHTMLAndFormat(task.targetRootName)}</strong></p>
+                    <div class="grid grid-cols-2 gap-6" id="optionsGrid">
+            `;
+            task.options.forEach((opt, index) => {
+                html += `<button onclick="checkOddOne(${index}, 'btn-${index}')" id="btn-${index}" class="text-3xl font-bold bg-white border-4 border-gray-200 rounded-2xl p-8 hover:bg-gray-50 transition-colors shadow-sm">${stripHTMLAndFormat(opt.text)}</button>`;
+            });
+            html += `</div><div id="feedbackDiv" class="hidden"></div></div>`;
+            appDiv.innerHTML = html;
+        }
+
+        window.checkOddOne = function(selectedIndex, btnId) {
+            const task = currentTaskQuestions[currentTaskIndex];
+            const btn = document.getElementById(btnId);
+            if (task.options[selectedIndex].isCorrect) {
+                btn.classList.remove('border-gray-200'); btn.classList.add('bg-green-500', 'text-white', 'border-green-600');
+                document.getElementById('optionsGrid').style.pointerEvents = 'none';
+                showFeedback('מעולה! 🎉 תשובה נכונה.', 'positive');
+                setTimeout(() => { currentTaskIndex++; renderNextTask(); }, 1200);
+            } else {
+                btn.classList.remove('border-gray-200'); btn.classList.add('bg-red-500', 'text-white', 'border-red-600');
+                showFeedback('נסה שוב! 🤔', 'negative');
+                setTimeout(() => { btn.classList.remove('bg-red-500', 'text-white', 'border-red-600'); btn.classList.add('border-gray-200'); hideFeedback(); }, 1200);
+            }
+        };
+
+        function renderMarkCore(task) {
+            const rawText = stripHTMLAndFormat(task.text);
+            currentWordBlocks = getHebrewBlocks(rawText);
+            if(userMarkingPattern.length !== currentWordBlocks.length) userMarkingPattern = new Array(currentWordBlocks.length).fill('none');
+
+            let html = `
+                <div class="animate-pop w-full max-w-3xl mx-auto">
+                    ${buildTaskHeader('צובעים שורש ומוספיות')}
+                    <p class="text-xl text-center mb-8 text-gray-600">צבעו את אותיות השורש בכחול ואת המוספיות בכתום.</p>
+                    <div class="flex justify-center gap-4 mb-10">
+                        <button onclick="selectTool('root')" class="px-6 py-3 rounded-xl font-bold border-2 transition-all block-root ${selectedMarkingTool === 'root' ? 'tool-selected' : ''}">🟦 אות שורש</button>
+                        <button onclick="selectTool('affix')" class="px-6 py-3 rounded-xl font-bold border-2 transition-all block-affix ${selectedMarkingTool === 'affix' ? 'tool-selected' : ''}">🟧 אות תוספת</button>
+                        <button onclick="selectTool('none')" class="px-6 py-3 rounded-xl font-bold border-2 transition-all block-none ${selectedMarkingTool === 'none' ? 'tool-selected' : ''}">⬜ מחק</button>
+                    </div>
+                    <div class="flex justify-center items-center flex-row-reverse gap-2 mb-10" id="letterBlocksContainer" dir="ltr">
+            `;
+            currentWordBlocks.forEach((block, idx) => {
+                const userColor = userMarkingPattern[idx];
+                html += `<button onclick="applyColor(${idx})" class="text-5xl font-bold w-16 h-20 rounded-lg border-4 transition-colors block-${userColor}">${block}</button>`;
+            });
+            html += `
+                    </div>
+                    <div class="text-center">
+                        <button onclick="checkMarking()" id="checkMarkBtn" class="${task.rootBtn || 'bg-blue-600'} text-white px-10 py-4 rounded-full font-bold text-xl shadow-md transition-colors">בדוק תשובה!</button>
+                    </div>
+                    <div id="feedbackDiv" class="hidden mt-6"></div>
+                </div>
+            `;
+            appDiv.innerHTML = html;
+        }
+
+        window.selectTool = function(tool) { selectedMarkingTool = tool; renderNextTask(); }
+        window.applyColor = function(index) { userMarkingPattern[index] = selectedMarkingTool; renderNextTask(); }
+
+        window.checkMarking = function() {
+            const task = currentTaskQuestions[currentTaskIndex];
+            let isCorrect = true;
+            const userMapped = userMarkingPattern.map(c => c === 'root' ? 'r' : (c === 'affix' ? 'a' : 'n'));
+            for (let i = 0; i < Math.min(userMapped.length, task.pattern.length); i++) {
+                if (userMapped[i] !== task.pattern[i]) { isCorrect = false; break; }
+            }
+            if(isCorrect) {
+                document.getElementById('checkMarkBtn').classList.add('hidden');
+                showFeedback('מעולה! 🎉 צבעת נכון.', 'positive');
+                setTimeout(() => { currentTaskIndex++; userMarkingPattern = []; renderNextTask(); }, 1500);
+            } else {
+                showFeedback('נסה שוב! בדוק אילו אותיות נשארות תמיד (שורש) ואילו משתנות. 🤔', 'negative');
+                setTimeout(() => hideFeedback(), 2500);
+            }
+        }
+
+        function renderGrammarCore(task) {
+            const rawText = stripHTMLAndFormat(task.text);
+            const isTenseMode = task.mode === 'tenses';
+            const title = isTenseMode ? "תרגול זמנים" : "תרגול גופים";
+            const questionText = isTenseMode ? "באיזה זמן המילה נמצאת?" : "באיזה גוף המילה נמצאת?";
+            
+            let options = isTenseMode ? ["עבר", "הווה", "עתיד"] : [];
+            if (!isTenseMode) {
+                const allPersons = ["אני", "אתה", "את", "הוא (זכר)", "היא (נקבה)", "אנחנו", "אתם", "אתן", "הם", "הן"];
+                options = shuffle(allPersons.filter(p => p !== task.person)).slice(0, 3);
+                options.push(task.person);
+                options = shuffle(options);
+            }
+
+            currentWordBlocks = getHebrewBlocks(rawText);
+            if(userMarkingPattern.length !== currentWordBlocks.length) userMarkingPattern = new Array(currentWordBlocks.length).fill('none');
+
+            let html = `
+                <div class="animate-pop w-full max-w-3xl mx-auto">
+                    ${buildTaskHeader(title)}
+            `;
+
+            // THE NEW SMART TIP ABOUT NIKUD
+            if (isTenseMode) {
+                const tipHtml = `
+                    <div class="bg-amber-100 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl mb-6 text-center shadow-sm">
+                        <strong class="text-amber-800 block mb-1 md:text-lg">💡 טיפ חשוב: שימו לב לניקוד!</strong> 
+                        מילים כמו <strong>נִשְׁמַע</strong> (בפתח) הן בדרך כלל ב<strong>עתיד</strong> (מחר אנחנו נשמע).<br>
+                        אבל מילים כמו <strong>נִשְׁמָע</strong> (בקמץ) הן ב<strong>הווה</strong> (השיר נשמע עכשיו).<br>
+                        הקפידו לקרוא את הניקוד כדי לזהות את הזמן הנכון.
+                    </div>
+                `;
+                html += stripHTMLAndFormat(tipHtml);
+            }
+
+            html += `
+                    <div class="text-center mb-8">
+                        <span class="inline-block bg-blue-50 border-2 border-blue-200 text-blue-900 text-5xl font-bold py-4 px-8 rounded-2xl shadow-sm">
+                            ${rawText}
+                        </span>
+                    </div>
+            `;
+
+            if (grammarPhase === 1) {
+                html += `
+                    <p class="text-xl text-center mb-6 text-gray-700 font-medium">${stripHTMLAndFormat(questionText)}</p>
+                    <div class="grid grid-cols-2 gap-4 max-w-lg mx-auto" id="grammarOptions">
+                `;
+                options.forEach((opt, idx) => {
+                    html += `<button onclick="checkGrammarChoice('${opt}', 'opt-${idx}')" id="opt-${idx}" class="text-2xl font-bold bg-white border-2 border-gray-300 rounded-xl py-4 hover:bg-gray-50 transition-all">${stripHTMLAndFormat(opt)}</button>`;
+                });
+                html += `</div><div id="feedbackDiv" class="hidden mt-6"></div></div>`;
+            } else {
+                html += `
+                    <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 text-center text-green-800 font-bold text-xl animate-pop">
+                        מצוין! התשובה: ${stripHTMLAndFormat(isTenseMode ? task.tense : task.person)}.
+                    </div>
+                    <p class="text-xl text-center mb-6 text-gray-700">עכשיו <strong>סמנו בכתום</strong> רק את האותיות המרמזות על ה${isTenseMode ? 'זמן' : 'גוף'} (המוספיות)!</p>
+                    <div class="flex justify-center items-center flex-row-reverse gap-2 mb-10" dir="ltr">
+                `;
+                currentWordBlocks.forEach((block, idx) => {
+                    const userColor = userMarkingPattern[idx] === 'affix' ? 'affix' : 'none';
+                    html += `<button onclick="toggleGrammarAffix(${idx})" class="text-5xl font-bold w-16 h-20 rounded-lg border-4 transition-colors block-${userColor}">${block}</button>`;
+                });
+                html += `
+                    </div>
+                    <div class="text-center">
+                        <button onclick="checkGrammarMarking()" class="bg-orange-500 hover:bg-orange-600 text-white px-10 py-4 rounded-full font-bold text-xl shadow-md transition-colors">בדוק סימון!</button>
+                    </div>
+                    <div id="feedbackDiv" class="hidden mt-6"></div></div>
+                `;
+            }
+            appDiv.innerHTML = html;
+        }
+
+        window.checkGrammarChoice = function(selected, btnId) {
+            const task = currentTaskQuestions[currentTaskIndex];
+            const isTenseMode = task.mode === 'tenses';
+            const correctAnswer = isTenseMode ? task.tense : task.person;
+            const btn = document.getElementById(btnId);
+
+            if (selected === correctAnswer) {
+                btn.classList.add('bg-green-500', 'text-white', 'border-green-600');
+                document.getElementById('grammarOptions').style.pointerEvents = 'none';
+                setTimeout(() => { grammarPhase = 2; renderNextTask(); }, 800);
+            } else {
+                btn.classList.add('bg-red-500', 'text-white', 'border-red-600');
+                showFeedback('נסה שוב! 🤔', 'negative');
+                setTimeout(() => { btn.classList.remove('bg-red-500', 'text-white', 'border-red-600'); hideFeedback(); }, 1200);
+            }
+        };
+
+        window.toggleGrammarAffix = function(index) {
+            userMarkingPattern[index] = userMarkingPattern[index] === 'affix' ? 'none' : 'affix';
+            renderNextTask();
+        };
+
+        window.checkGrammarMarking = function() {
+            const task = currentTaskQuestions[currentTaskIndex];
+            let isCorrect = true;
+            for (let i = 0; i < task.pattern.length; i++) {
+                if ((task.pattern[i] === 'a') !== (userMarkingPattern[i] === 'affix')) { isCorrect = false; break; }
+            }
+
+            if(isCorrect) {
+                showFeedback('מעולה! 🎉 זיהית את אותיות המוספית.', 'positive');
+                setTimeout(() => { grammarPhase = 1; userMarkingPattern = []; currentTaskIndex++; renderNextTask(); }, 1500);
+            } else {
+                showFeedback('נסה שוב! בדוק שסימנת רק את האותיות המרמזות (ולא את השורש).', 'negative');
+                setTimeout(() => hideFeedback(), 2500);
+            }
+        };
+
+        // --- View Specific Roots (Learning Mode) ---
+        function renderVocab() {
+            const root = database.find(r => r.id === activeRootId);
+            let html = `
+                <div class="animate-pop w-full max-w-4xl mx-auto">
+                    <button onclick="navigate('home')" class="mb-6 text-gray-500 hover:text-gray-800 font-medium flex items-center gap-2">
+                        <span>&rarr;</span> חזרה לתפריט
+                    </button>
+                    
+                    <div class="flex flex-col items-center mb-8 gap-4">
+                        <h2 class="text-4xl font-bold text-gray-800">${stripHTMLAndFormat('בנק המילים: ' + root.rootName)}</h2>
+                        <button onclick="navigate('story')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-6 py-2 rounded-full font-bold transition-colors">
+                            📖 מעבר לקריאת סיפור
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            `;
+            root.words.forEach(word => {
+                html += `
+                    <div class="bg-white border-2 border-gray-100 rounded-xl p-6 flex flex-col items-center justify-center shadow-sm card-hover">
+                        <div class="text-4xl mb-4 font-bold whitespace-nowrap bg-gray-50 px-6 py-4 rounded-xl border border-gray-200" dir="rtl">
+                            ${stripHTMLAndFormat(word.html)}
+                        </div>
+                        <div class="text-lg text-gray-600 text-center font-medium">${stripHTMLAndFormat(word.meaning)}</div>
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+            appDiv.innerHTML = html;
+        }
+
+        function renderStory() {
+            const root = database.find(r => r.id === activeRootId);
+            const story = root.story;
+            
+            let html = `
+                <div class="animate-pop w-full max-w-3xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="navigate('home')" class="text-gray-500 hover:text-gray-800 font-medium flex items-center gap-2"><span>&rarr;</span> חזרה לתפריט</button>
+                        <button onclick="navigate('vocab')" class="text-blue-500 hover:text-blue-700 font-medium">חזרה לבנק המילים</button>
+                    </div>
+                    <h2 class="text-3xl font-bold text-center mb-6">${stripHTMLAndFormat('קריאה: ' + story.title)}</h2>
+                    <div class="flex justify-center gap-2 mb-6">
+                        <button onclick="changeStoryLength('short')" class="px-4 py-2 rounded-lg font-bold border-2 ${selectedStoryLength === 'short' ? 'bg-amber-400 border-amber-500 text-white' : 'bg-gray-100 border-gray-200 text-gray-600'}">קצר</button>
+                        <button onclick="changeStoryLength('medium')" class="px-4 py-2 rounded-lg font-bold border-2 ${selectedStoryLength === 'medium' ? 'bg-amber-400 border-amber-500 text-white' : 'bg-gray-100 border-gray-200 text-gray-600'}">בינוני</button>
+                        <button onclick="changeStoryLength('long')" class="px-4 py-2 rounded-lg font-bold border-2 ${selectedStoryLength === 'long' ? 'bg-amber-400 border-amber-500 text-white' : 'bg-gray-100 border-gray-200 text-gray-600'}">ארוך</button>
+                    </div>
+                    <div class="bg-amber-50 border-2 border-amber-100 rounded-2xl p-8 mb-8 shadow-inner min-h-[200px]">
+                        <p class="text-2xl leading-loose font-medium text-gray-800 text-center" id="storyContent">
+                            ${stripHTMLAndFormat(story[selectedStoryLength])}
+                        </p>
+                    </div>
+                </div>
+            `;
+            appDiv.innerHTML = html;
+        }
+        window.changeStoryLength = function(len) { selectedStoryLength = len; renderStory(); }
+
+        // Finish Screen
+        function renderFinish() {
+            let html = `
+                <div class="text-center animate-pop py-10">
+                    <div class="text-7xl mb-6">🏆</div>
+                    <h2 class="text-4xl font-bold text-green-600 mb-4">סיימת את התרגול בהצלחה!</h2>
+                    <p class="text-xl mb-8 text-gray-600">כל הכבוד על המאמץ.</p>
+                    <button onclick="navigate('home')" class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-full font-bold text-xl transition-all shadow-md">
+                        חזרה למסך הראשי
+                    </button>
+                </div>
+            `;
+            appDiv.innerHTML = html;
+        }
+
+        // Navigation
+        window.navigate = function(screenName) {
+            currentScreen = screenName;
+            render();
+        };
+
+        // --- Start App ---
+        render();
+
+    </script>
+</body>
+</html>
